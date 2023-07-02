@@ -1,14 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { parseEther, stringify } from 'viem'
-import {
-  usePrepareSendTransaction,
-  useSendTransaction,
-  useWaitForTransaction,
-} from 'wagmi'
+import { parseEther, } from 'viem'
 
 import { useDebounce } from '../hooks/useDebounce'
+
+import { TransactButton } from "./TransactButton"
 
 export function SendTransactionPrepared() {
   const [to, setTo] = useState('')
@@ -17,54 +14,35 @@ export function SendTransactionPrepared() {
   const [value, setValue] = useState('')
   const debouncedValue = useDebounce(value)
 
-  const { config } = usePrepareSendTransaction({
+  const [showButton, setShowButton] = useState(true)
+
+  const prepareConfig = {
     to: debouncedTo,
     value: debouncedValue ? parseEther(value as `${number}`) : undefined,
     enabled: Boolean(debouncedTo && debouncedValue),
-  })
-  const { data, error, isLoading, isError, sendTransaction } =
-    useSendTransaction(config)
-  const {
-    data: receipt,
-    isLoading: isPending,
-    isSuccess,
-  } = useWaitForTransaction({ hash: data?.hash })
+  }
 
   return (
     <>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          sendTransaction?.()
-        }}
+      <input
+        placeholder="address"
+        onChange={(e) => setTo(e.target.value)}
+        value={to}
+      />
+      <input
+        id="value"
+        placeholder="value (ether)"
+        onChange={(e) => setValue(e.target.value)}
+        value={value}
+      />
+      {showButton && <TransactButton
+        prepareConfig={prepareConfig}
+        confirmingMsg="Confirm in Wallet"
+        waitingMsg="Waiting on Network"
       >
-        <input
-          placeholder="address"
-          onChange={(e) => setTo(e.target.value)}
-          value={to}
-        />
-        <input
-          id="value"
-          placeholder="value (ether)"
-          onChange={(e) => setValue(e.target.value)}
-          value={value}
-        />
-        <button disabled={!sendTransaction} type="submit">
-          Send
-        </button>
-      </form>
-
-      {isLoading && <div>Check wallet...</div>}
-      {isPending && <div>Transaction pending...</div>}
-      {isSuccess && (
-        <>
-          <div>Transaction Hash: {data?.hash}</div>
-          <div>
-            Transaction Receipt: <pre>{stringify(receipt, null, 2)}</pre>
-          </div>
-        </>
-      )}
-      {isError && <div>Error: {error?.message}</div>}
+        Send
+      </TransactButton>}
+      <button onClick={() => setShowButton(!showButton)}>Toggle</button>
     </>
   )
 }
